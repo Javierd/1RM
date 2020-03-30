@@ -1,3 +1,4 @@
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:calculator_1rm/decimalTextInputFormatter.dart';
 import 'package:calculator_1rm/styles.dart';
 import 'package:flutter/material.dart';
@@ -39,7 +40,7 @@ class _MainPageState extends State<MainPage> {
 
   calculateReps(){
     setState(() {
-      if (enteredWeight == null || enteredReps == null){
+      if (enteredWeight == null || enteredReps == null || enteredWeight == 0 || enteredReps == 0){
         estimated1RM = null;
       }else{
         estimated1RM = Calculator.estimateRM(this.enteredWeight, this.enteredReps)
@@ -59,48 +60,24 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget getResultsGrid(){
+    int columnCount = 4;
     return GridView.count(
-      crossAxisCount: 4,
+      crossAxisCount: columnCount,
       children: List.generate(12, (int index) {
         double weight = Calculator.estimateWeight(this.estimated1RM, index+1);
-        return Center(
-            child: ResultCard(weight: weight, reps: index+1)
+        return AnimationConfiguration.staggeredGrid(
+          position: index,
+          duration: const Duration(milliseconds: 375),
+          columnCount: columnCount,
+          child: ScaleAnimation(
+            child: FadeInAnimation(
+              child: Center(
+                  child: ResultCard(weight: weight, reps: index+1)
+              ),
+            ),
+          ),
         );
       }),
-    );
-  }
-
-  @override
-  Widget build2(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                Expanded(child: TextInputCard(cardTitle: "Weight", decimal: true, onChanged: onWeightChanged,)),
-                Expanded(child: TextInputCard(cardTitle: "Reps", decimal: false, onChanged: onRepsChanged)),
-              ],
-            ),
-            Expanded(
-                child: this.estimated1RM == null ? Text("No data available"): getResultsGrid()
-            )
-          ],
-        ),
-      ),
     );
   }
 
