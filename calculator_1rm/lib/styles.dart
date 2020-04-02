@@ -7,13 +7,13 @@ const Color darkGreen = Color(0xFF00AA12);
 const Color backgroundColor = Color(0xFFEFEEF5);
 
 
-TextStyle titleStyleWhite = new TextStyle(
+const TextStyle titleStyleWhite = TextStyle(
     color: Colors.white,
     fontWeight: FontWeight.bold,
     fontSize: 25
 );
 
-TextStyle titileStyleLighterBlack = new TextStyle(
+const TextStyle titleStyleLighterBlack = TextStyle(
     color: Color(0xFF34475D),
     fontWeight: FontWeight.bold,
     fontSize: 20

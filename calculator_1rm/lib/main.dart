@@ -1,3 +1,5 @@
+import 'package:calculator_1rm/fabBottomNavigationBar.dart';
+import 'package:calculator_1rm/settingsPage.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:calculator_1rm/decimalTextInputFormatter.dart';
 import 'package:calculator_1rm/styles.dart';
@@ -36,17 +38,23 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   double enteredWeight;
   int enteredReps;
-  double estimated1RM;
+  Future<Map<int, double>> _estimations;
+  int _currentTabIndex = 0;
+
+  static const Duration animatePageDuration = Duration(milliseconds: 300);
+  static const Widget _noDataAvailableWidget =  Center(child: Text("No data available", style: titleStyleLighterBlack,));
+  static const Widget _noFormulaSelectedWidget =  Center(child: Text("No formula selected", style: titleStyleLighterBlack,));
+
+  bool get validEntry{
+    return enteredWeight != null && enteredReps != null && enteredWeight != 0 && enteredReps != 0;
+  }
 
   calculateReps(){
-    setState(() {
-      if (enteredWeight == null || enteredReps == null || enteredWeight == 0 || enteredReps == 0){
-        estimated1RM = null;
-      }else{
-        estimated1RM = Calculator.estimateRM(this.enteredWeight, this.enteredReps)
-            .roundToDouble();
-      }
-    });
+    if (validEntry){
+       _estimations = Calculator.estimateReps(this.enteredWeight, this.enteredReps, 12);
+    }
+
+    setState(() {});
   }
 
   void onWeightChanged(String weight){
@@ -59,39 +67,24 @@ class _MainPageState extends State<MainPage> {
     calculateReps();
   }
 
-  Widget getResultsGrid(){
-    int columnCount = 4;
-    return GridView.count(
-      crossAxisCount: columnCount,
-      children: List.generate(12, (int index) {
-        double weight = Calculator.estimateWeight(this.estimated1RM, index+1);
-        return AnimationConfiguration.staggeredGrid(
-          position: index,
-          duration: const Duration(milliseconds: 375),
-          columnCount: columnCount,
-          child: ScaleAnimation(
-            child: FadeInAnimation(
-              child: Center(
-                  child: ResultCard(weight: weight, reps: index+1)
-              ),
-            ),
-          ),
-        );
-      }),
-    );
+  @override
+  void initState() {
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    int columnCount = 4;
     return Scaffold(
       body: Container(
         child: Column(
           children: <Widget>[
             Stack(
               children: <Widget>[
-                Container(
-                  padding: EdgeInsets.all(40),
-                  constraints: BoxConstraints.expand(height: 225),
+                AnimatedContainer(
+                  duration: animatePageDuration,
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: _currentTabIndex==0 ? 40:10),
+                  constraints: BoxConstraints.expand(height: _currentTabIndex==0 ? 225:100),
                   decoration: BoxDecoration(
                       gradient: new LinearGradient(
                           colors: [lightBlueIsh, lightGreen],
@@ -103,7 +96,7 @@ class _MainPageState extends State<MainPage> {
                       borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight:  Radius.circular(30))
                   ),
                   child: Container(
-                    padding: EdgeInsets.only(top: 50),
+                    padding: EdgeInsets.only(top: _currentTabIndex==0 ? 50:34),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
@@ -112,26 +105,116 @@ class _MainPageState extends State<MainPage> {
                     ),
                   ),
                 ),
-                Container(
-                  margin: EdgeInsets.only(top: 170, left: 10, right: 10),
-                  child:  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
-                      Expanded(child: TextInputCard(cardTitle: "Weight", hintText: "Required", decimal: true, onChanged: onWeightChanged,)),
-                      Expanded(child: TextInputCard(cardTitle: "Reps", hintText: "Required" ,decimal: false, onChanged: onRepsChanged)),
-                    ],
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 10,  //StatusBar Height + 10
+                  right: 10,
+                  child: IconButton(
+                    icon: Icon(Icons.settings, size: 28, color: Colors.white),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        new MaterialPageRoute(builder: (context) => SettingsPage()),
+                      ).then((value) {
+                        calculateReps();
+                      });
+                    },
+                  )
+                ),
+                AnimatedOpacity(
+                  duration: animatePageDuration,
+                  opacity: _currentTabIndex==0 ? 1.0:0.0,
+                  child: AnimatedContainer(
+                    duration: animatePageDuration,
+                    margin: EdgeInsets.only(left: 10, right: 10, top:_currentTabIndex==0 ? 170:0),
+                    child:  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: <Widget>[
+                        Expanded(child: TextInputCard(cardTitle: "Weight", hintText: "Required", decimal: true, onChanged: onWeightChanged,)),
+                        Expanded(child: TextInputCard(cardTitle: "Reps", hintText: "Required" ,decimal: false, onChanged: onRepsChanged)),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
             Expanded(
-                child: this.estimated1RM != null ? getResultsGrid()
-                    : Center(child: Text("No data available", style: titileStyleLighterBlack,)),
+                child: FutureBuilder(
+                    future: _estimations,
+                    builder: (BuildContext context, AsyncSnapshot snapshot){
+                      switch (snapshot.connectionState){
+                        case ConnectionState.waiting:
+                          return Container();
+                        default:
+                          if (snapshot.hasError && snapshot.error is NoFormulaSelectedException) {
+                            return _noFormulaSelectedWidget;
+                          } else if(snapshot.hasError){
+                            return Center(child: Text("Unexpected error: $snapshot.error"));
+                          } else if (!snapshot.hasData || !validEntry) {
+                            /* If _estimatedRM is null, it means that entered weight/reps is not valid*/
+                            return _noDataAvailableWidget;
+                          } else {
+                            return GridView.count(
+                              crossAxisCount: columnCount,
+                              children: List.generate(12, (int index) {
+                                /* Once we have the rm, we need to estimate every rep weight */
+                                return AnimationConfiguration.staggeredGrid(
+                                  position: index,
+                                  duration: const Duration(milliseconds: 375),
+                                  columnCount: columnCount,
+                                  child: ScaleAnimation(
+                                    child: FadeInAnimation(
+                                      child: Center(
+                                          child: ResultCard(
+                                              weight: snapshot.data[index+1],
+                                              reps: index + 1)
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            );
+                          }
+                      }
+                    }
+                ),
             )
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          setState(() {
+
+          });
+        },
+        backgroundColor: lightBlueIsh,
+        child: Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: FABBottomNavigationBar(
+        backgroundColor: Colors.white,
+        selectedItemColor: lightBlueIsh,
+        unselectedItemColor: Colors.black45,
+        onTap: this._onTabTapped,
+        notchedShape: CircularNotchedRectangle(),
+        currentIndex: this._currentTabIndex,
+        // TODO: Add items text, animations, double tap to just refresh, etc
+        items: [
+          new FABBottomNavigationBarItem(
+            icon: Icons.access_time,
+            title: 'Alarms',
+          ),
+          new FABBottomNavigationBarItem(
+            icon: Icons.calendar_today,
+            title: 'Calendar',
+          ),
+        ],
+      ),
     );
+  }
+
+  void _onTabTapped(int index){
+    setState(() => this._currentTabIndex = index);
   }
 }
 
@@ -170,9 +253,10 @@ class TextInputCard extends StatelessWidget{
           children: <Widget>[
             Text(this.cardTitle, style: cardTitleStyle),
             TextField(
-              autofocus: true,
+              autofocus: false,
               maxLines: 1,
               textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 18),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: this.hintText ?? "",
