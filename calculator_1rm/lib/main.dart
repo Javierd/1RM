@@ -1,8 +1,10 @@
-import 'package:calculator_1rm/fabBottomNavigationBar.dart';
-import 'package:calculator_1rm/settingsPage.dart';
+import 'package:calculator_1rm/contracts/main_contract.dart';
+import 'package:calculator_1rm/presenters/main_presenter.dart';
+import 'package:calculator_1rm/views/fabBottomNavigationBar.dart';
+import 'package:calculator_1rm/views/settingsPage.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import 'package:calculator_1rm/decimalTextInputFormatter.dart';
-import 'package:calculator_1rm/styles.dart';
+import 'package:calculator_1rm/utils/decimalTextInputFormatter.dart';
+import 'package:calculator_1rm/utils/styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -35,46 +37,31 @@ class MainPage extends StatefulWidget {
   _MainPageState createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
-  double enteredWeight;
-  int enteredReps;
-  Future<Map<int, double>> _estimations;
+class _MainPageState extends State<MainPage> implements MainPageContract{
+  static const Duration animatePageDuration = Duration(milliseconds: 300);
+
+  String _enteredWeight, _enteredReps;
   int _currentTabIndex = 0;
 
-  static const Duration animatePageDuration = Duration(milliseconds: 300);
-  static const Widget _noDataAvailableWidget =  Center(child: Text("No data available", style: titleStyleLighterBlack,));
-  static const Widget _noFormulaSelectedWidget =  Center(child: Text("No formula selected", style: titleStyleLighterBlack,));
-
-  bool get validEntry{
-    return enteredWeight != null && enteredReps != null && enteredWeight != 0 && enteredReps != 0;
+  void _onRepsChanged(String reps){
+    _enteredReps = reps;
+    MainPresenter().onDataEntered(_enteredWeight, _enteredReps);
   }
 
-  calculateReps(){
-    if (validEntry){
-       _estimations = Calculator.estimateReps(this.enteredWeight, this.enteredReps, 12);
-    }
-
-    setState(() {});
+  void _onWeightChanged(String weight){
+    _enteredWeight = weight;
+    MainPresenter().onDataEntered(_enteredWeight, _enteredReps);
   }
 
-  void onWeightChanged(String weight){
-    this.enteredWeight = double.tryParse(weight);
-    calculateReps();
-  }
-
-  void onRepsChanged(String reps){
-    this.enteredReps = int.tryParse(reps);
-    calculateReps();
-  }
 
   @override
   void initState() {
     super.initState();
+    MainPresenter().attachView(this);
   }
 
   @override
   Widget build(BuildContext context) {
-    int columnCount = 4;
     return Scaffold(
       body: Container(
         child: Column(
@@ -115,7 +102,7 @@ class _MainPageState extends State<MainPage> {
                         context,
                         new MaterialPageRoute(builder: (context) => SettingsPage()),
                       ).then((value) {
-                        calculateReps();
+                        MainPresenter().onDataEntered(_enteredWeight, _enteredReps);
                       });
                     },
                   )
@@ -129,8 +116,8 @@ class _MainPageState extends State<MainPage> {
                     child:  Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: <Widget>[
-                        Expanded(child: TextInputCard(cardTitle: "Weight", hintText: "Required", decimal: true, onChanged: onWeightChanged,)),
-                        Expanded(child: TextInputCard(cardTitle: "Reps", hintText: "Required" ,decimal: false, onChanged: onRepsChanged)),
+                        Expanded(child: TextInputCard(cardTitle: "Weight", hintText: "Required", decimal: true, onChanged: _onWeightChanged,)),
+                        Expanded(child: TextInputCard(cardTitle: "Reps", hintText: "Required" ,decimal: false, onChanged: _onRepsChanged)),
                       ],
                     ),
                   ),
@@ -138,45 +125,7 @@ class _MainPageState extends State<MainPage> {
               ],
             ),
             Expanded(
-                child: FutureBuilder(
-                    future: _estimations,
-                    builder: (BuildContext context, AsyncSnapshot snapshot){
-                      switch (snapshot.connectionState){
-                        case ConnectionState.waiting:
-                          return Container();
-                        default:
-                          if (snapshot.hasError && snapshot.error is NoFormulaSelectedException) {
-                            return _noFormulaSelectedWidget;
-                          } else if(snapshot.hasError){
-                            return Center(child: Text("Unexpected error: $snapshot.error"));
-                          } else if (!snapshot.hasData || !validEntry) {
-                            /* If _estimatedRM is null, it means that entered weight/reps is not valid*/
-                            return _noDataAvailableWidget;
-                          } else {
-                            return GridView.count(
-                              crossAxisCount: columnCount,
-                              children: List.generate(12, (int index) {
-                                /* Once we have the rm, we need to estimate every rep weight */
-                                return AnimationConfiguration.staggeredGrid(
-                                  position: index,
-                                  duration: const Duration(milliseconds: 375),
-                                  columnCount: columnCount,
-                                  child: ScaleAnimation(
-                                    child: FadeInAnimation(
-                                      child: Center(
-                                          child: ResultCard(
-                                              weight: snapshot.data[index+1],
-                                              reps: index + 1)
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }),
-                            );
-                          }
-                      }
-                    }
-                ),
+                child: GridResults()
             )
           ],
         ),
@@ -216,6 +165,88 @@ class _MainPageState extends State<MainPage> {
   void _onTabTapped(int index){
     setState(() => this._currentTabIndex = index);
   }
+}
+
+class GridResults extends StatefulWidget{
+  @override
+  _GridResultsState createState() => _GridResultsState();
+
+}
+
+class _GridResultsState extends State<GridResults> implements GridResultsViewContract{
+  static const Widget _noDataAvailableWidget =  Center(child: Text("No data available", style: titleStyleLighterBlack,));
+  static const Widget _noFormulaSelectedWidget =  Center(child: Text("No formula selected", style: titleStyleLighterBlack,));
+  static const columnCount = 4;
+
+  Future<Map<int, double>> _estimations;
+  bool validEntry;
+
+  @override
+  void initState() {
+    super.initState();
+    MainPresenter().attachGrid(this);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: _estimations,
+        builder: (BuildContext context, AsyncSnapshot snapshot){
+          switch (snapshot.connectionState){
+            case ConnectionState.waiting:
+              return Container();
+            default:
+              if (snapshot.hasError && snapshot.error is NoFormulaSelectedException) {
+                return _noFormulaSelectedWidget;
+              } else if(snapshot.hasError){
+                return Center(child: Text("Unexpected error: $snapshot.error"));
+              } else if (!snapshot.hasData || !validEntry) {
+                /* If _estimatedRM is null, it means that entered weight/reps is not valid*/
+                return _noDataAvailableWidget;
+              } else {
+                return GridView.count(
+                  crossAxisCount: columnCount,
+                  children: List.generate(12, (int index) {
+                    /* Once we have the rm, we need to estimate every rep weight */
+                    return AnimationConfiguration.staggeredGrid(
+                      position: index,
+                      duration: const Duration(milliseconds: 375),
+                      columnCount: columnCount,
+                      child: ScaleAnimation(
+                        child: FadeInAnimation(
+                          child: Center(
+                              child: ResultCard(
+                                  weight: snapshot.data[index+1],
+                                  reps: index + 1)
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                );
+              }
+          }
+        }
+    );
+  }
+
+  @override
+  void setValidEntry(bool valid) {
+    if (valid != validEntry){
+      setState(() {
+        validEntry = valid;
+      });
+    }
+  }
+
+  @override
+  void updateResults(Future<Map<int, double>> results) {
+    setState(() {
+      validEntry = true;
+      _estimations = results;
+    });
+  }
+
 }
 
 class TextInputCard extends StatelessWidget{

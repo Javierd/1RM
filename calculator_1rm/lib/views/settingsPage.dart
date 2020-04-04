@@ -1,5 +1,7 @@
+import 'package:calculator_1rm/contracts/settings_contract.dart';
 import 'package:calculator_1rm/models/settings.dart';
-import 'package:calculator_1rm/styles.dart';
+import 'package:calculator_1rm/presenters/settings_presenter.dart';
+import 'package:calculator_1rm/utils/styles.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,25 +11,16 @@ class SettingsPage extends StatefulWidget{
 
 }
 
-class _SettingsPageState extends State<SettingsPage>{
-  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+class _SettingsPageState extends State<SettingsPage> implements SettingsPageContract{
+  SettingsPresenter _presenter;
   Future<Map<String, bool>> _loadedSettings;
-
-
-  Future setUserSetting(String setting, bool value) async{
-    final SharedPreferences prefs = await _prefs;
-    prefs.setBool(setting, value);
-    setState(() {
-      _loadedSettings.then((Map<String, bool> map) {
-        map[setting] = value;
-      });
-    });
-  }
 
   @override
   void initState() {
     super.initState();
-    _loadedSettings = Settings.loadUserSettings(_prefs);
+    _presenter = SettingsPresenter();
+    _presenter.attachView(this);
+    _presenter.loadUserSettings();
   }
 
   @override
@@ -79,7 +72,7 @@ class _SettingsPageState extends State<SettingsPage>{
                               return CheckboxListTile(
                                 value: snapshot.data[name],
                                 title: Text(name),
-                                onChanged: (value) {setUserSetting(name, value);},
+                                onChanged: (value) {_presenter.setUserSetting(name, value);},
                               );
                             }
                         );
@@ -92,6 +85,22 @@ class _SettingsPageState extends State<SettingsPage>{
         ),
       ),
     );
+  }
+
+  @override
+  void updateUserSettings(Future<Map<String, bool>> result) {
+    setState(() {
+      _loadedSettings = result;
+    });
+  }
+
+  @override
+  void updateUserSetting(String name, bool newValue) {
+    setState(() {
+      _loadedSettings.then((Map<String, bool> map) {
+        map[name] = newValue;
+      });
+    });
   }
 
 }
