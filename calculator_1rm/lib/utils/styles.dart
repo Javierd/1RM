@@ -21,3 +21,10 @@ const TextStyle titleStyleLighterBlack = TextStyle(
 
 
 
+const double baseHeight = 825;
+double screenAwareSize(double size, BuildContext context) {
+  return size * MediaQuery
+      .of(context)
+      .size
+      .height / baseHeight;
+}

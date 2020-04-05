@@ -157,8 +157,12 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
               children: <Widget>[
                 AnimatedContainer(
                   duration: animatePageDuration,
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 40),
-                  constraints: BoxConstraints.expand(height: _currentTabIndex==0 ? 225:200),
+                  padding: EdgeInsets.all(screenAwareSize(40, context)),
+                  constraints: BoxConstraints.expand(
+                    height: _currentTabIndex==0 ?
+                      screenAwareSize(225, context):
+                      screenAwareSize(200, context)
+                  ),
                   decoration: BoxDecoration(
                       gradient: new LinearGradient(
                           colors: [lightBlueIsh, lightGreen],
@@ -170,7 +174,11 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
                       borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight:  Radius.circular(30))
                   ),
                   child: Container(
-                    padding: EdgeInsets.only(top:  _currentTabIndex==0 ? 50:40),
+                    padding: EdgeInsets.only(
+                      top:  _currentTabIndex==0 ?
+                        screenAwareSize(50, context):
+                        screenAwareSize(40, context)
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
@@ -180,7 +188,7 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
                   ),
                 ),
                 Positioned(
-                  top: MediaQuery.of(context).padding.top + 10,  //StatusBar Height + 10
+                  top: MediaQuery.of(context).padding.top + screenAwareSize(10, context),  //StatusBar Height + 10
                   right: 10,
                   child: IconButton(
                     icon: Icon(Icons.settings, size: 28, color: Colors.white),
@@ -196,7 +204,13 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
                 ),
                 AnimatedContainer(
                   duration: animatePageDuration,
-                  margin: EdgeInsets.only(left: 10, right: 10, top: _currentTabIndex==0 ? 170:145),
+                  margin: EdgeInsets.only(
+                      left: 10,
+                      right: 10,
+                      top: _currentTabIndex==0 ?
+                        screenAwareSize(170, context):
+                        screenAwareSize(145, context)
+                  ),
                   child:  AnimatedSwitcher(
                     child: _currentTabIndex==0 ? _inputBar:_dropDownBar,
                     duration: animatePageDuration,
@@ -674,7 +688,7 @@ class CustomCard extends StatelessWidget{
       shape: cardShape,
       elevation: 10,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(screenAwareSize(16.0, context)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
