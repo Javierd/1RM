@@ -3,6 +3,9 @@ import 'dart:math';
 import 'package:calculator_1rm/models/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'extended_record.dart';
+import 'moor_database.dart';
+
 class Calculator{
 
   static const List<String> formulas = ["Brzycki",
@@ -37,6 +40,35 @@ class Calculator{
     } on NoFormulaSelectedException catch (e){
       throw e;
     }
+  }
+
+  /*
+  * Given a Future<List<Record>> this function calculates the 1RM of each record and
+  * returns a list with their corresponding ExtendedRecords.
+  * */
+  static Future<List<ExtendedRecord>> extendRecords(Future<List<Record>> records) async{
+    Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+    Map<String, bool> formulas = await Settings.loadUserSettings(_prefs);
+
+
+    return (await records).map((Record r){
+      double sum = 0;
+      int n = 0;
+
+      formulas.forEach((k, v){
+        if (v){
+          n += 1;
+          sum += _estimateRM(r.weight, r.reps, k);
+        }
+      });
+
+      if (n == 0){
+        throw NoFormulaSelectedException();
+      }
+
+      return ExtendedRecord.from(r, (sum/n).roundToDouble());
+
+    }).toList();
   }
 
   static Future<double> _estimateMean(double weight, int reps, Function estimateFunct) async{

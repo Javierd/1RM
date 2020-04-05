@@ -21,5 +21,3 @@ const TextStyle titleStyleLighterBlack = TextStyle(
 
 
 
-
-

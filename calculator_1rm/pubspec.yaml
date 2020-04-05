@@ -20,18 +20,35 @@ dependencies:
   flutter:
     sdk: flutter
 
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^0.1.2
 
+  intl: ^0.16.1
+
   # Row, Column, GridView and ListView animations
   flutter_staggered_animations: ^0.1.2
-
   shared_preferences: ^0.5.6+3
+
+  # Moor
+  moor: ^2.4.2
+  moor_ffi: ^0.4.0
+  path_provider: ^1.6.5
+  path: ^1.6.4
+
+  # Charts
+  charts_flutter: ^0.9.0
+
+  #Toasts
+  fluttertoast: ^4.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  moor_generator: ^2.4.0
+  build_runner: ^1.8.1
 
 
 # For information on the generic Dart part of this file, see the

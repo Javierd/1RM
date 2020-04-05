@@ -1,9 +1,7 @@
 import 'package:calculator_1rm/contracts/settings_contract.dart';
-import 'package:calculator_1rm/models/settings.dart';
 import 'package:calculator_1rm/presenters/settings_presenter.dart';
 import 'package:calculator_1rm/utils/styles.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatefulWidget{
   @override
@@ -58,7 +56,7 @@ class _SettingsPageState extends State<SettingsPage> implements SettingsPageCont
                 builder: (BuildContext context, AsyncSnapshot snapshot){
                   switch (snapshot.connectionState) {
                     case ConnectionState.waiting:
-                      return const CircularProgressIndicator();
+                      return const Center(child: CircularProgressIndicator());
                     default:
                       if (snapshot.hasError) {
                         return Text('Error: ${snapshot.error}');

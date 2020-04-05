@@ -1,14 +1,18 @@
 import 'package:calculator_1rm/contracts/main_contract.dart';
+import 'package:calculator_1rm/models/moor_database.dart';
 import 'package:calculator_1rm/presenters/main_presenter.dart';
 import 'package:calculator_1rm/views/fabBottomNavigationBar.dart';
 import 'package:calculator_1rm/views/settingsPage.dart';
+import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:calculator_1rm/utils/decimalTextInputFormatter.dart';
 import 'package:calculator_1rm/utils/styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import 'models/calculator.dart';
+import 'models/extended_record.dart';
 
 void main() => runApp(RMCalculator());
 
@@ -19,7 +23,11 @@ class RMCalculator extends StatelessWidget {
     return MaterialApp(
       title: '1RM Calculator',
       theme: ThemeData(
-        primarySwatch: Colors.green,
+        primarySwatch: Colors.cyan,
+        accentColor: lightBlueIsh,
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          foregroundColor: Colors.white,
+        ),
         textSelectionColor: Colors.black,
         cursorColor: Colors.black
       ),
@@ -39,8 +47,12 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> implements MainPageContract{
   static const Duration animatePageDuration = Duration(milliseconds: 300);
+  Future<List<Exercise>> _exercises;
+  Exercise _selectedExercise;
 
   String _enteredWeight, _enteredReps;
+
+  final List<Widget> _tabs = [GridResults(), ExerciseRecordsView()];
   int _currentTabIndex = 0;
 
   void _onRepsChanged(String reps){
@@ -53,16 +65,85 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
     MainPresenter().onDataEntered(_enteredWeight, _enteredReps);
   }
 
+  String get enteredWeight => _enteredWeight;
+  String get enteredReps => _enteredReps;
+  Exercise get selectedExercise => _selectedExercise;
 
   @override
   void initState() {
     super.initState();
     MainPresenter().attachView(this);
+    MainPresenter().loadExercises();
+  }
+
+  @override
+  void dispose(){
+    super.dispose();
+    MainPresenter().detachView();
+  }
+
+  Widget get _inputBar {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: <Widget>[
+        Expanded(child: TextInputCard(cardTitle: "Weight", hintText: "Required", initialText: _enteredWeight, decimal: true, onChanged: _onWeightChanged,)),
+        Expanded(child: TextInputCard(cardTitle: "Reps", hintText: "Required", initialText: _enteredReps, decimal: false, onChanged: _onRepsChanged)),
+      ],
+    );
+  }
+
+  Widget get _dropDownBar {
+    return Center(
+      child: FutureBuilder(
+          future: _exercises,
+          builder: (BuildContext context, AsyncSnapshot snapshot){
+            switch (snapshot.connectionState){
+              case ConnectionState.waiting:
+                return Container();
+              default:
+                if (snapshot.hasError){
+                  return Center(child: Text("Unexpected error: $snapshot.error"));
+                } else if (!snapshot.hasData || snapshot.data.length == 0) {
+                  /* If _estimatedRM is null, it means that entered weight/reps is not valid*/
+                  return Center(child: Text("No data available"));
+                } else {
+                  if (_selectedExercise == null){
+                    _selectedExercise = snapshot.data[0];
+                  }
+                  return CustomCard(
+                    title: "Exercise",
+                    child: DropdownButton<Exercise>(
+                      underline: Container(),
+                      hint:  Text("Select item"),
+                      value: _selectedExercise,
+                      onChanged: (Exercise value) {
+                        MainPresenter().onExerciseSelected(value);
+                        setState(() {
+                          _selectedExercise = value;
+                        });
+                      },
+                      items: snapshot.data.map<DropdownMenuItem<Exercise>>((Exercise exercise) {
+                        return  DropdownMenuItem<Exercise>(
+                          value: exercise,
+                          child: Text(
+                            exercise.name,
+                            style:  TextStyle(color: Colors.black),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                }
+            }
+          }
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: Container(
         child: Column(
           children: <Widget>[
@@ -70,8 +151,8 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
               children: <Widget>[
                 AnimatedContainer(
                   duration: animatePageDuration,
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: _currentTabIndex==0 ? 40:10),
-                  constraints: BoxConstraints.expand(height: _currentTabIndex==0 ? 225:100),
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+                  constraints: BoxConstraints.expand(height: _currentTabIndex==0 ? 225:200),
                   decoration: BoxDecoration(
                       gradient: new LinearGradient(
                           colors: [lightBlueIsh, lightGreen],
@@ -83,7 +164,7 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
                       borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight:  Radius.circular(30))
                   ),
                   child: Container(
-                    padding: EdgeInsets.only(top: _currentTabIndex==0 ? 50:34),
+                    padding: EdgeInsets.only(top:  _currentTabIndex==0 ? 50:40),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
@@ -107,42 +188,34 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
                     },
                   )
                 ),
-                AnimatedOpacity(
+                AnimatedContainer(
                   duration: animatePageDuration,
-                  opacity: _currentTabIndex==0 ? 1.0:0.0,
-                  child: AnimatedContainer(
+                  margin: EdgeInsets.only(left: 10, right: 10, top: _currentTabIndex==0 ? 170:145),
+                  child:  AnimatedSwitcher(
+                    child: _currentTabIndex==0 ? _inputBar:_dropDownBar,
                     duration: animatePageDuration,
-                    margin: EdgeInsets.only(left: 10, right: 10, top:_currentTabIndex==0 ? 170:0),
-                    child:  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: <Widget>[
-                        Expanded(child: TextInputCard(cardTitle: "Weight", hintText: "Required", decimal: true, onChanged: _onWeightChanged,)),
-                        Expanded(child: TextInputCard(cardTitle: "Reps", hintText: "Required" ,decimal: false, onChanged: _onRepsChanged)),
-                      ],
-                    ),
-                  ),
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      return ScaleTransition(child: child, scale: animation);
+                    },
+                  )
                 ),
               ],
             ),
             Expanded(
-                child: GridResults()
+                child: _tabs[_currentTabIndex],
             )
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          setState(() {
-
-          });
-        },
-        backgroundColor: lightBlueIsh,
+        onPressed: () => MainPresenter().onFabPressed(context, _currentTabIndex),
+        backgroundColor: _currentTabIndex==0 ? lightBlueIsh:lightGreen,
         child: Icon(Icons.add),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: FABBottomNavigationBar(
         backgroundColor: Colors.white,
-        selectedItemColor: lightBlueIsh,
+        selectedItemColor: _currentTabIndex==0 ? lightBlueIsh:lightGreen,
         unselectedItemColor: Colors.black45,
         onTap: this._onTabTapped,
         notchedShape: CircularNotchedRectangle(),
@@ -150,20 +223,108 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
         // TODO: Add items text, animations, double tap to just refresh, etc
         items: [
           new FABBottomNavigationBarItem(
-            icon: Icons.access_time,
-            title: 'Alarms',
+            icon: Icons.account_balance,
+            title: 'Calculator',
           ),
           new FABBottomNavigationBarItem(
-            icon: Icons.calendar_today,
-            title: 'Calendar',
+            icon: Icons.poll,
+            title: 'Records',
           ),
         ],
       ),
     );
   }
 
+  Future<String> showTextInputDialog(BuildContext context, {final String initText, String title}) async {
+    String name = initText;
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: true, // dialog is dismissible with a tap on the barrier
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0.0),
+                child: TextField(
+                  autofocus: true,
+                  maxLines: 1,
+                  controller: TextEditingController(text: name),
+                  decoration: new InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Exercise name',
+                  ),
+                  onChanged: (value) {
+                    name = value;
+                  },
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  FlatButton(
+                    child: const Text('Cancel'),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textColor: Theme.of(context).accentColor,
+                    onPressed: () {
+                      Navigator.of(context).pop(initText);
+                    },
+                  ),
+                  FlatButton(
+                    child: const Text('OK'),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textColor: Theme.of(context).accentColor,
+                    onPressed: () {
+                      Navigator.of(context).pop(name);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _onTabTapped(int index){
     setState(() => this._currentTabIndex = index);
+  }
+
+  @override
+  void setExerciseList(Future<List<Exercise>> exercises){
+    _exercises = exercises;
+    if (_currentTabIndex==1){
+      setState(() {
+      });
+    }
+
+  }
+
+  @override
+  Future<Exercise> showExerciseDropdownDialog(BuildContext context, {String title}) async{
+    List<Widget> options = [];
+    for (Exercise ex in await _exercises){
+      options.add(
+          SimpleDialogOption(
+            child: Text(ex.name),
+            onPressed: () => Navigator.pop(context, ex),
+          )
+      );
+    }
+
+    return showDialog<Exercise>(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          return SimpleDialog(
+            title: Text(title ?? "Select an exercise"),
+            children: options,
+          );
+        }
+    );
   }
 }
 
@@ -185,6 +346,13 @@ class _GridResultsState extends State<GridResults> implements GridResultsViewCon
   void initState() {
     super.initState();
     MainPresenter().attachGrid(this);
+    MainPresenter().loadGridEnteredInfo();
+  }
+
+  @override
+  void dispose(){
+    super.dispose();
+    MainPresenter().detachGrid();
   }
 
   @override
@@ -249,9 +417,189 @@ class _GridResultsState extends State<GridResults> implements GridResultsViewCon
 
 }
 
+class ExerciseRecordsView extends StatefulWidget{
+  @override
+  _ExerciseRecordsViewState createState() => _ExerciseRecordsViewState();
+
+}
+
+class _ExerciseRecordsViewState extends State<ExerciseRecordsView> implements ExerciseRecordsViewContract{
+  Exercise _exercise;
+  Future<List<ExtendedRecord>> _records;
+
+  @override
+  void initState() {
+    super.initState();
+    MainPresenter().attachExerciseRecordsView(this);
+    MainPresenter().loadRecordsSelectedExercise();
+  }
+
+  @override
+  void dispose(){
+    super.dispose();
+    MainPresenter().detachExerciseRecordsView();
+  }
+
+  List<charts.Series<ExtendedRecord, DateTime>> _getChartSeries(List<ExtendedRecord> records){
+    return [
+      charts.Series<ExtendedRecord, DateTime>(
+        id: '1RM',
+        colorFn: (_, __) => charts.MaterialPalette.cyan.shadeDefault,
+        domainFn: (ExtendedRecord record, _) => record.timestamp,
+        measureFn: (ExtendedRecord record, _) => record.rm,
+        data: records,
+      )..setAttribute(charts.rendererIdKey, "1RM")
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: _records,
+        builder: (BuildContext context, AsyncSnapshot snapshot){
+          switch (snapshot.connectionState){
+            case ConnectionState.waiting:
+              return const Center(child: CircularProgressIndicator());
+            default:
+              if (snapshot.hasError){
+                return Center(child: Text("Unexpected error: $snapshot.error"));
+              } else if (!snapshot.hasData || snapshot.data.length == 0) {
+                /* If _estimatedRM is null, it means that entered weight/reps is not valid*/
+                return Center(
+                    child: Text(
+                      _exercise==null ? "No data available": "No data available for ${_exercise.name}",
+                      style: titleStyleLighterBlack,)
+                );
+              } else {
+                return Column(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      flex: 2,
+                      child: charts.TimeSeriesChart(
+                        _getChartSeries(snapshot.data),
+                        animate: true,
+                        customSeriesRenderers: [
+                          charts.LineRendererConfig(
+                            // ID used to link series to this renderer.
+                              customRendererId: '1RM',
+                              includeArea: true,
+                              stacked: true
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: ListView.builder(
+                        itemCount: snapshot.data.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return AnimationConfiguration.staggeredList(
+                            position: index,
+                            duration: const Duration(milliseconds: 375),
+                            child: SlideAnimation(
+                              verticalOffset: 50.0,
+                              child: FadeInAnimation(
+                                child: RecordListItem(record: snapshot.data[index]),
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                    )
+                  ],
+                );
+              }
+          }
+        }
+    );
+  }
+
+  @override
+  void loadExercise(Exercise exercise, Future<List<Record>> records) {
+    setState(() {
+      _exercise = exercise;
+      _records = records;
+    });
+  }
+
+}
+
+class RecordListItem extends StatelessWidget{
+  final ExtendedRecord record;
+
+  const RecordListItem({Key key, @required this.record}) : super(key: key);
+
+  Widget get basicInfo => Row(
+    mainAxisSize: MainAxisSize.max,
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: <Widget>[
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6.0),
+            child: Text(
+              "${record.rm} kg",
+              style: const TextStyle(
+                  fontSize: 18,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold
+              ),
+            ),
+          ),
+          Text(
+            "${record.weight}x${record.reps}",
+            style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black54
+            ),
+          ),
+        ],
+      ),
+      Text(
+        DateFormat.yMMMMd('en_US').format(record.timestamp),
+        style: const TextStyle(
+            fontSize: 16,
+            color: Colors.black87
+        ),
+      ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Card(
+        elevation: 6,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(10))
+        ),
+        child: Padding(
+          padding: const EdgeInsets.only(left: 12.0, top: 12.0, bottom: 12.0, right: 16.0),
+          child: record.description==null ? basicInfo :
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: <Widget>[
+                  basicInfo,
+                  Text("Notes: ${record.description}")
+                ],
+              )
+        ),
+      ),
+    );
+  }
+
+}
+
 class TextInputCard extends StatelessWidget{
   final String cardTitle;
   final String hintText;
+  final String initialText;
   final bool decimal;
   final ValueChanged<String> onChanged;
 
@@ -259,6 +607,7 @@ class TextInputCard extends StatelessWidget{
     @required this.cardTitle,
     @required this.decimal,
     @required this.onChanged,
+    this.initialText,
     this.hintText,
     Key key
   }) : super(key: key);
@@ -272,36 +621,64 @@ class TextInputCard extends StatelessWidget{
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(20))
+    return CustomCard(
+      title: cardTitle,
+      child: TextField(
+        autofocus: false,
+        maxLines: 1,
+        textAlign: TextAlign.center,
+        controller: TextEditingController(text: initialText??""),
+        style: TextStyle(fontSize: 18),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          hintText: this.hintText ?? "",
+        ),
+        keyboardType: TextInputType.numberWithOptions(signed: false, decimal: this.decimal),
+        inputFormatters: [DecimalTextInputFormatter(decimalRange: this.decimal ? 2 : 0, signed: false)],
+        onChanged: (val) => this.onChanged(val),
       ),
+    );
+  }
+
+}
+
+class CustomCard extends StatelessWidget{
+  final Widget child;
+  final String title;
+
+  static const TextStyle cardTitleStyle = TextStyle(
+      color: lightBlueIsh,
+      fontWeight: FontWeight.bold,
+      fontSize: 16
+  );
+
+  static const RoundedRectangleBorder cardShape =  RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(20))
+  );
+
+  const CustomCard({
+    @required this.title,
+    @required this.child,
+    Key key
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: cardShape,
       elevation: 10,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Text(this.cardTitle, style: cardTitleStyle),
-            TextField(
-              autofocus: false,
-              maxLines: 1,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18),
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: this.hintText ?? "",
-              ),
-              keyboardType: TextInputType.numberWithOptions(signed: false, decimal: this.decimal),
-              inputFormatters: [DecimalTextInputFormatter(decimalRange: this.decimal ? 2 : 0, signed: false)],
-              onChanged: (val) => this.onChanged(val),
-            ),
+            Text(this.title, style: cardTitleStyle),
+            child
           ],
         ),
       ),
     );
   }
-
 }
 
 class ResultCard extends StatelessWidget{
