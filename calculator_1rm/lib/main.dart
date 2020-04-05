@@ -14,7 +14,13 @@ import 'package:intl/intl.dart';
 import 'models/calculator.dart';
 import 'models/extended_record.dart';
 
-void main() => runApp(RMCalculator());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
+      .then((_) {
+    runApp(RMCalculator());
+  });
+}
 
 class RMCalculator extends StatelessWidget {
   // This widget is the root of your application.
