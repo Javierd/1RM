@@ -92,8 +92,20 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: <Widget>[
-        Expanded(child: TextInputCard(cardTitle: "Weight", hintText: "Required", initialText: _enteredWeight, decimal: true, onChanged: _onWeightChanged,)),
-        Expanded(child: TextInputCard(cardTitle: "Reps", hintText: "Required", initialText: _enteredReps, decimal: false, onChanged: _onRepsChanged)),
+        Expanded(child: TextInputCard(
+            cardTitle: "Weight",
+            hintText: "Required",
+            decimal: true,
+            onChanged: _onWeightChanged,
+            text: _enteredWeight
+        )),
+        Expanded(child: TextInputCard(
+            cardTitle: "Reps",
+            hintText: "Required",
+            decimal: false,
+            onChanged: _onRepsChanged,
+            text: _enteredReps
+        )),
       ],
     );
   }
@@ -616,21 +628,31 @@ class RecordListItem extends StatelessWidget{
 
 }
 
-class TextInputCard extends StatelessWidget{
+
+
+class TextInputCard extends StatefulWidget{
   final String cardTitle;
   final String hintText;
-  final String initialText;
   final bool decimal;
   final ValueChanged<String> onChanged;
+  final String text;
 
-  const TextInputCard({
+  TextInputCard({
     @required this.cardTitle,
     @required this.decimal,
     @required this.onChanged,
-    this.initialText,
+    this.text,
     this.hintText,
     Key key
   }) : super(key: key);
+
+  @override
+  _TextInputCardState createState() => _TextInputCardState();
+
+}
+
+class _TextInputCardState extends State<TextInputCard>{
+  TextEditingController controller;
 
   static const TextStyle cardTitleStyle = TextStyle(
       color: lightBlueIsh,
@@ -638,24 +660,35 @@ class TextInputCard extends StatelessWidget{
       fontSize: 16
   );
 
+  @override
+  void initState() {
+    super.initState();
+    controller = TextEditingController(text: widget.text);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    controller.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return CustomCard(
-      title: cardTitle,
+      title: widget.cardTitle,
       child: TextField(
         autofocus: false,
         maxLines: 1,
         textAlign: TextAlign.center,
-        controller: TextEditingController(text: initialText??""),
+        controller: controller,
         style: TextStyle(fontSize: 18),
         decoration: InputDecoration(
           border: InputBorder.none,
-          hintText: this.hintText ?? "",
+          hintText: widget.hintText ?? "",
         ),
-        keyboardType: TextInputType.numberWithOptions(signed: false, decimal: this.decimal),
-        inputFormatters: [DecimalTextInputFormatter(decimalRange: this.decimal ? 2 : 0, signed: false)],
-        onChanged: (val) => this.onChanged(val),
+        keyboardType: TextInputType.numberWithOptions(signed: false, decimal: widget.decimal),
+        inputFormatters: [DecimalTextInputFormatter(decimalRange: widget.decimal ? 2 : 0, signed: false)],
+        onChanged: (val) => widget.onChanged(val),
       ),
     );
   }
