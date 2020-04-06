@@ -120,7 +120,8 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
                 return Container();
               default:
                 if (snapshot.hasError){
-                  return Center(child: Text("Unexpected error: $snapshot.error"));
+                  print("Error on _dropDownBar FutureBuilder: ${snapshot.error}");
+                  return UnexpectedErrorWidget();
                 } else if (!snapshot.hasData || snapshot.data.length == 0) {
                   /* If _estimatedRM is null, it means that entered weight/reps is not valid*/
                   return Center(child: Text("No data available"));
@@ -399,7 +400,8 @@ class _GridResultsState extends State<GridResults> implements GridResultsViewCon
               if (snapshot.hasError && snapshot.error is NoFormulaSelectedException) {
                 return _noFormulaSelectedWidget;
               } else if(snapshot.hasError){
-                return Center(child: Text("Unexpected error: $snapshot.error"));
+                print("Error on _GridResultsState FutureBuilder: ${snapshot.error}");
+                return UnexpectedErrorWidget();
               } else if (!snapshot.hasData || !validEntry) {
                 /* If _estimatedRM is null, it means that entered weight/reps is not valid*/
                 return _noDataAvailableWidget;
@@ -494,7 +496,8 @@ class _ExerciseRecordsViewState extends State<ExerciseRecordsView> implements Ex
               return const Center(child: CircularProgressIndicator());
             default:
               if (snapshot.hasError){
-                return Center(child: Text("Unexpected error: $snapshot.error"));
+                print("Error on _ExerciseRecordsViewState FutureBuilder: ${snapshot.error}");
+                return UnexpectedErrorWidget();
               } else if (!snapshot.hasData || snapshot.data.length == 0) {
                 /* If _estimatedRM is null, it means that entered weight/reps is not valid*/
                 return Center(

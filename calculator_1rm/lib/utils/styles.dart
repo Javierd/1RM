@@ -28,3 +28,20 @@ double screenAwareSize(double size, BuildContext context) {
       .size
       .height / baseHeight;
 }
+
+class UnexpectedErrorWidget extends StatelessWidget{
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(Icons.error),
+          Text("Upps, an unxepected error occured. Try again!")
+        ],
+      ),
+    );
+  }
+
+}

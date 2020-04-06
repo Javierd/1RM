@@ -59,7 +59,8 @@ class _SettingsPageState extends State<SettingsPage> implements SettingsPageCont
                       return const Center(child: CircularProgressIndicator());
                     default:
                       if (snapshot.hasError) {
-                        return Text('Error: ${snapshot.error}');
+                        print("Error on _SettingsPageState FutureBuilder: ${snapshot.error}");
+                        return UnexpectedErrorWidget();
                       } else {
                         List<String> keys = snapshot.data.keys.toList();
                         return ListView.separated(
