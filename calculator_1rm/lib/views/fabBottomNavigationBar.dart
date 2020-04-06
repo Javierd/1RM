@@ -23,7 +23,7 @@ class FABBottomNavigationBar extends StatefulWidget{
     this.backgroundColor: Colors.white,
     @required this.unselectedItemColor,
     @required this.selectedItemColor,
-    this.notchedShape, //TODO
+    this.notchedShape,
     this.iconSize: 24,
     this.height: 60.0,
     this.currentIndex: 0

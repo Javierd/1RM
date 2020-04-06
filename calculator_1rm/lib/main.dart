@@ -631,8 +631,6 @@ class RecordListItem extends StatelessWidget{
 
 }
 
-
-
 class TextInputCard extends StatefulWidget{
   final String cardTitle;
   final String hintText;
@@ -654,8 +652,12 @@ class TextInputCard extends StatefulWidget{
 
 }
 
-class _TextInputCardState extends State<TextInputCard>{
-  TextEditingController controller;
+class _TextInputCardState extends State<TextInputCard>
+    with SingleTickerProviderStateMixin{
+  TextEditingController _controller;
+  FocusNode _focus;
+  AnimationController _animationController;
+  Animation<double> _animationTween;
 
   static const TextStyle cardTitleStyle = TextStyle(
       color: lightBlueIsh,
@@ -666,24 +668,51 @@ class _TextInputCardState extends State<TextInputCard>{
   @override
   void initState() {
     super.initState();
-    controller = TextEditingController(text: widget.text);
+
+    /* Init the text controller and set the initial text */
+    _controller = TextEditingController(text: widget.text);
+
+    /* Init the animation controllers */
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 30),
+      vsync: this,
+    );
+    _animationTween =
+        Tween(begin: 10.0, end: 15.0).animate(_animationController);
+    _animationController.addListener(() {
+      setState(() {});
+    });
+
+    /* Set the listener which controls the animation */
+    _focus = FocusNode();
+    _focus.addListener((){
+      if (_focus.hasFocus){
+        _animationController.forward(from: _animationController.value);
+      }else{
+        _animationController.reverse(from: _animationController.value);
+      }
+    });
   }
 
   @override
   void dispose() {
     super.dispose();
-    controller.dispose();
+    _controller.dispose();
+    _focus.dispose();
+    _animationController.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return CustomCard(
       title: widget.cardTitle,
+      elevation: _animationTween.value,
       child: TextField(
         autofocus: false,
         maxLines: 1,
         textAlign: TextAlign.center,
-        controller: controller,
+        controller: _controller,
+        focusNode: _focus,
         style: TextStyle(fontSize: 18),
         decoration: InputDecoration(
           border: InputBorder.none,
@@ -701,6 +730,7 @@ class _TextInputCardState extends State<TextInputCard>{
 class CustomCard extends StatelessWidget{
   final Widget child;
   final String title;
+  final double elevation;
 
   static const TextStyle cardTitleStyle = TextStyle(
       color: lightBlueIsh,
@@ -715,6 +745,7 @@ class CustomCard extends StatelessWidget{
   const CustomCard({
     @required this.title,
     @required this.child,
+    this.elevation: 10,
     Key key
   }) : super(key: key);
 
@@ -722,7 +753,7 @@ class CustomCard extends StatelessWidget{
   Widget build(BuildContext context) {
     return Card(
       shape: cardShape,
-      elevation: 10,
+      elevation: elevation,
       child: Padding(
         padding: EdgeInsets.all(screenAwareSize(16.0, context)),
         child: Column(
