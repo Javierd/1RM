@@ -141,14 +141,11 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
                     )
                   );
                 } else {
-                  if (_selectedExercise == null){
-                    _selectedExercise = snapshot.data[0];
-                  }
                   return CustomCard(
                     title: "Exercise",
                     child: DropdownButton<Exercise>(
                       underline: Container(),
-                      hint:  Text("Select item"),
+                      hint:  Text("Select exercise"),
                       value: _selectedExercise,
                       onChanged: (Exercise value) {
                         MainPresenter().onExerciseSelected(value);
@@ -328,7 +325,7 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
 
     List<Exercise> exercises = await _exercises;
     if (exercises.length == 0){
-      return null;
+      return Tuple2<Exercise, String>(null, null);
     }
 
     Exercise selectedExercise;
@@ -501,7 +498,7 @@ class _ExerciseRecordsViewState extends State<ExerciseRecordsView> implements Ex
                 /* If _estimatedRM is null, it means that entered weight/reps is not valid*/
                 return Center(
                     child: Text(
-                      _exercise==null ? "No data available": "No data available for ${_exercise.name}",
+                      _exercise==null ? "No exercise selected": "No data available for ${_exercise.name}",
                       style: titleStyleLighterBlack,)
                 );
               } else {

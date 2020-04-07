@@ -118,6 +118,9 @@ class MainPresenter extends BasePresenter<MainPageContract> implements MainPrese
       }else {
         Tuple2<Exercise, String> tuple = await view.showExerciseDropdownDialog(context);
         if (tuple == null){
+          
+          return;
+        }else if (tuple.item1 == null){
           Fluttertoast.showToast(
               msg: "You need to create an exercise on the Records tab first",
               toastLength: Toast.LENGTH_LONG,
@@ -125,9 +128,6 @@ class MainPresenter extends BasePresenter<MainPageContract> implements MainPrese
               timeInSecForIosWeb: 1,
               fontSize: 16.0
           );
-          return;
-        }else if (tuple.item1 == null){
-          return;
         }
 
         _database.insertRecord(RecordsCompanion(

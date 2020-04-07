@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
       await insertExercise(ExercisesCompanion(name: Value("Bench Press")));
       await insertExercise(ExercisesCompanion(name: Value("Deadlift")));
     }
-    
+
     return select(exercises).get();
   }
 
