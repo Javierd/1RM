@@ -1,20 +1,27 @@
 import 'package:calculator_1rm/contracts/main_contract.dart';
 import 'package:calculator_1rm/models/calculator.dart';
 import 'package:calculator_1rm/models/moor_database.dart';
+import 'package:calculator_1rm/models/settings.dart';
 import 'package:calculator_1rm/presenters/base_presenter.dart';
-import 'package:flutter/src/widgets/framework.dart';
+import 'package:flutter/widgets.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:moor/moor.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tuple/tuple.dart';
 
 class MainPresenter extends BasePresenter<MainPageContract> implements MainPresenterContract{
   static final MainPresenter _presenter = MainPresenter._internal();
   static final AppDatabase _database = AppDatabase();
+  Future<bool> isFirstRun;
 
   GridResultsViewContract grid;
   ExerciseRecordsViewContract exerciseRecordsView;
 
   factory MainPresenter() => _presenter;
-  MainPresenter._internal();
+  MainPresenter._internal(){
+    /* Detect if it the first time user opens the app */
+    isFirstRun = Settings.isFirstRun();
+  }
 
   void attachGrid(GridResultsViewContract grid){
     this.grid = grid;
@@ -91,7 +98,6 @@ class MainPresenter extends BasePresenter<MainPageContract> implements MainPrese
   }
 
   @override
-  /* TODO Show a toast or something similar */
   void onFabPressed(BuildContext context, int tabIndex) async{
     checkViewAttached();
     if (tabIndex == 0){
@@ -110,12 +116,25 @@ class MainPresenter extends BasePresenter<MainPageContract> implements MainPrese
 
         return;
       }else {
-        Exercise exercise = await view.showExerciseDropdownDialog(context);
+        Tuple2<Exercise, String> tuple = await view.showExerciseDropdownDialog(context);
+        if (tuple == null){
+          Fluttertoast.showToast(
+              msg: "You need to create an exercise on the Records tab first",
+              toastLength: Toast.LENGTH_LONG,
+              gravity: ToastGravity.BOTTOM,
+              timeInSecForIosWeb: 1,
+              fontSize: 16.0
+          );
+          return;
+        }else if (tuple.item1 == null){
+          return;
+        }
 
         _database.insertRecord(RecordsCompanion(
-          exercise: Value(exercise.id),
+          exercise: Value(tuple.item1.id),
           reps: Value(reps),
           weight: Value(weight),
+          description: Value(tuple.item2),
           timestamp: Value(DateTime.now())
         )).then((value) {
           Fluttertoast.showToast(

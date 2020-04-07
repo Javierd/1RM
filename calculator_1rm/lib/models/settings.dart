@@ -19,4 +19,14 @@ class Settings{
     return activeFormulas;
   }
 
+  static Future<bool> isFirstRun() async{
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isFirstRun = prefs.getBool("isFirstTime") == null;
+    if (isFirstRun){
+      prefs.setBool("isFirstTime", false);
+    }
+
+    return isFirstRun;
+  }
+
 }

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:calculator_1rm/presenters/main_presenter.dart';
 import 'package:moor/moor.dart';
 import 'package:moor_ffi/moor_ffi.dart';
 import 'package:path_provider/path_provider.dart';
@@ -47,7 +48,16 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 1;
 
-  Future<List<Exercise>> getAllExercises() => select(exercises).get();
+  Future<List<Exercise>> getAllExercises() async{
+    /* If it's the first time we run the app, insert the basic exercises */
+    if (await MainPresenter().isFirstRun){
+      await insertExercise(ExercisesCompanion(name: Value("Squat")));
+      await insertExercise(ExercisesCompanion(name: Value("Bench Press")));
+      await insertExercise(ExercisesCompanion(name: Value("Deadlift")));
+    }
+    
+    return select(exercises).get();
+  }
 
   Future insertExercise(ExercisesCompanion exercise) => into(exercises).insert(exercise);
 

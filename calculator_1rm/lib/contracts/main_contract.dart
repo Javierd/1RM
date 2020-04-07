@@ -1,6 +1,7 @@
 import 'package:calculator_1rm/models/extended_record.dart';
 import 'package:calculator_1rm/models/moor_database.dart';
 import 'package:flutter/widgets.dart';
+import 'package:tuple/tuple.dart';
 
 abstract class MainPresenterContract{
   void onDataEntered(String weight, String reps);
@@ -27,7 +28,7 @@ abstract class MainPageContract{
       {final String initText, String title});
 
   /* If the user*/
-  Future<Exercise> showExerciseDropdownDialog(BuildContext context, {String title});
+  Future<Tuple2<Exercise, String>> showExerciseDropdownDialog(BuildContext context, {String title});
 }
 
 abstract class GridResultsViewContract{

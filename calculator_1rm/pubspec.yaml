@@ -43,6 +43,8 @@ dependencies:
   #Toasts
   fluttertoast: ^4.0.0
 
+  tuple: ^1.0.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

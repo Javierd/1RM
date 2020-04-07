@@ -1,6 +1,7 @@
 import 'package:calculator_1rm/contracts/main_contract.dart';
 import 'package:calculator_1rm/models/moor_database.dart';
 import 'package:calculator_1rm/presenters/main_presenter.dart';
+import 'package:calculator_1rm/views/dialogs.dart';
 import 'package:calculator_1rm/views/fabBottomNavigationBar.dart';
 import 'package:calculator_1rm/views/settingsPage.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
@@ -10,6 +11,8 @@ import 'package:calculator_1rm/utils/styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:moor/moor.dart' as moor;
+import 'package:tuple/tuple.dart';
 
 import 'models/calculator.dart';
 import 'models/extended_record.dart';
@@ -124,7 +127,19 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
                   return UnexpectedErrorWidget();
                 } else if (!snapshot.hasData || snapshot.data.length == 0) {
                   /* If _estimatedRM is null, it means that entered weight/reps is not valid*/
-                  return Center(child: Text("No data available"));
+                  return CustomCard(
+                    title: "Exercise",
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0,
+                        vertical: 12.0,
+                      ),
+                      child: Text(
+                        "No exercises available",
+                        style: TextStyle(color: Colors.black45, fontSize: 18),
+                      ),
+                    )
+                  );
                 } else {
                   if (_selectedExercise == null){
                     _selectedExercise = snapshot.data[0];
@@ -172,9 +187,7 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
                   duration: animatePageDuration,
                   padding: EdgeInsets.all(screenAwareSize(40, context)),
                   constraints: BoxConstraints.expand(
-                    height: _currentTabIndex==0 ?
-                      screenAwareSize(225, context):
-                      screenAwareSize(200, context)
+                    height: screenAwareSize(200, context)
                   ),
                   decoration: BoxDecoration(
                       gradient: new LinearGradient(
@@ -188,9 +201,7 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
                   ),
                   child: Container(
                     padding: EdgeInsets.only(
-                      top:  _currentTabIndex==0 ?
-                        screenAwareSize(50, context):
-                        screenAwareSize(40, context)
+                      top: screenAwareSize(40, context)
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,9 +231,7 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
                   margin: EdgeInsets.only(
                       left: 10,
                       right: 10,
-                      top: _currentTabIndex==0 ?
-                        screenAwareSize(170, context):
-                        screenAwareSize(145, context)
+                      top: screenAwareSize(145, context)
                   ),
                   child:  AnimatedSwitcher(
                     child: _currentTabIndex==0 ? _inputBar:_dropDownBar,
@@ -268,55 +277,30 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
     );
   }
 
-  Future<String> showTextInputDialog(BuildContext context, {final String initText, String title}) async {
+  Future<String> showTextInputDialog(BuildContext context,
+      {final String initText,
+        String title: "Add new exercise",
+        String hintText: "Exercise name",
+      }) async {
+
     String name = initText;
     return showDialog<String>(
       context: context,
       barrierDismissible: true, // dialog is dismissible with a tap on the barrier
       builder: (BuildContext context) {
-        return Dialog(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0.0),
-                child: TextField(
-                  autofocus: true,
-                  maxLines: 1,
-                  controller: TextEditingController(text: name),
-                  decoration: new InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Exercise name',
-                  ),
-                  onChanged: (value) {
-                    name = value;
-                  },
-                ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: <Widget>[
-                  FlatButton(
-                    child: const Text('Cancel'),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    textColor: Theme.of(context).accentColor,
-                    onPressed: () {
-                      Navigator.of(context).pop(initText);
-                    },
-                  ),
-                  FlatButton(
-                    child: const Text('OK'),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    textColor: Theme.of(context).accentColor,
-                    onPressed: () {
-                      Navigator.of(context).pop(name);
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
+        return TextInputDialog(
+          title: title,
+          hintText: hintText,
+          initText: initText,
+          onCancel: () {
+            Navigator.of(context).pop(initText);
+          },
+          onOk: () {
+            Navigator.of(context).pop(name);
+          },
+          onInputChanged: (value) {
+            name = value;
+          },
         );
       },
     );
@@ -337,26 +321,41 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
   }
 
   @override
-  Future<Exercise> showExerciseDropdownDialog(BuildContext context, {String title}) async{
-    List<Widget> options = [];
-    for (Exercise ex in await _exercises){
-      options.add(
-          SimpleDialogOption(
-            child: Text(ex.name),
-            onPressed: () => Navigator.pop(context, ex),
-          )
-      );
+  Future<Tuple2<Exercise, String>> showExerciseDropdownDialog(BuildContext context,
+      {String title: "Select an exercise",
+        hintText: "Notes",
+      }) async{
+
+    List<Exercise> exercises = await _exercises;
+    if (exercises.length == 0){
+      return null;
     }
 
-    return showDialog<Exercise>(
-        context: context,
-        barrierDismissible: true,
-        builder: (BuildContext context) {
-          return SimpleDialog(
-            title: Text(title ?? "Select an exercise"),
-            children: options,
-          );
-        }
+    Exercise selectedExercise;
+    String notes;
+
+    return showDialog<Tuple2<Exercise, String>>(
+      context: context,
+      barrierDismissible: true, // dialog is dismissible with a tap on the barrier
+      builder: (BuildContext context) {
+        return SaveRecordDialog(
+          title: title,
+          hintText: hintText,
+          exercises: exercises,
+          onCancel: () {
+            Navigator.of(context).pop(null);
+          },
+          onOk: () {
+            Navigator.of(context).pop(Tuple2<Exercise, String>(selectedExercise, notes));
+          },
+          onInputChanged: (value) {
+            notes = value;
+          },
+          onSelectedOptionChanged: (Exercise exercise) {
+            selectedExercise = exercise;
+          }
+        );
+      },
     );
   }
 }
@@ -512,17 +511,20 @@ class _ExerciseRecordsViewState extends State<ExerciseRecordsView> implements Ex
                   children: <Widget>[
                     Expanded(
                       flex: 2,
-                      child: charts.TimeSeriesChart(
-                        _getChartSeries(snapshot.data),
-                        animate: true,
-                        customSeriesRenderers: [
-                          charts.LineRendererConfig(
-                            // ID used to link series to this renderer.
-                              customRendererId: '1RM',
-                              includeArea: true,
-                              stacked: true
-                          ),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: charts.TimeSeriesChart(
+                          _getChartSeries(snapshot.data),
+                          animate: true,
+                          customSeriesRenderers: [
+                            charts.LineRendererConfig(
+                              // ID used to link series to this renderer.
+                                customRendererId: '1RM',
+                                includeArea: true,
+                                stacked: true
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     Expanded(
@@ -569,6 +571,7 @@ class RecordListItem extends StatelessWidget{
   Widget get basicInfo => Row(
     mainAxisSize: MainAxisSize.max,
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: <Widget>[
       Column(
         mainAxisSize: MainAxisSize.min,
@@ -619,9 +622,19 @@ class RecordListItem extends StatelessWidget{
               Column(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   basicInfo,
-                  Text("Notes: ${record.description}")
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      "Notes: ${record.description}",
+                      style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87
+                      ),
+                    ),
+                  )
                 ],
               )
         ),
@@ -678,7 +691,7 @@ class _TextInputCardState extends State<TextInputCard>
       vsync: this,
     );
     _animationTween =
-        Tween(begin: 10.0, end: 15.0).animate(_animationController);
+        Tween(begin: 10.0, end: 20.0).animate(_animationController);
     _animationController.addListener(() {
       setState(() {});
     });
@@ -735,7 +748,7 @@ class CustomCard extends StatelessWidget{
   static const TextStyle cardTitleStyle = TextStyle(
       color: lightBlueIsh,
       fontWeight: FontWeight.bold,
-      fontSize: 16
+      fontSize: 18
   );
 
   static const RoundedRectangleBorder cardShape =  RoundedRectangleBorder(
