@@ -162,52 +162,54 @@ class _SaveRecordDialogStatus extends State<SaveRecordDialog>{
           },
         ),
       ],
-      content: Container(
-        width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Divider(),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height*0.4,
-              ),
-              child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: widget.exercises.length,
-                  itemBuilder: (BuildContext context, int index){
-                    return RadioListTile<Exercise>(
-                        title: Text(widget.exercises[index].name),
-                        value: widget.exercises[index],
-                        groupValue: _selected,
-                        onChanged: (value){
-                          if (widget.onSelectedOptionChanged != null){
-                            widget.onSelectedOptionChanged(value);
+      content: SingleChildScrollView(
+        child: Container(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Divider(),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height*0.4,
+                ),
+                child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: widget.exercises.length,
+                    itemBuilder: (BuildContext context, int index){
+                      return RadioListTile<Exercise>(
+                          title: Text(widget.exercises[index].name),
+                          value: widget.exercises[index],
+                          groupValue: _selected,
+                          onChanged: (value){
+                            if (widget.onSelectedOptionChanged != null){
+                              widget.onSelectedOptionChanged(value);
+                            }
+                            setState(() {
+                              _selected = value;
+                            });
                           }
-                          setState(() {
-                            _selected = value;
-                          });
-                        }
-                    );
+                      );
+                    }
+                ),
+              ),
+              Divider(),
+              TextField(
+                autofocus: false,
+                maxLines: 1,
+                style: TextStyle(fontSize: 18),
+                decoration: new InputDecoration(
+                  border: InputBorder.none,
+                  hintText: widget.hintText,
+                ),
+                onChanged: (value) {
+                  if (widget.onInputChanged != null){
+                    widget.onInputChanged(value);
                   }
+                },
               ),
-            ),
-            Divider(),
-            TextField(
-              autofocus: false,
-              maxLines: 1,
-              style: TextStyle(fontSize: 18),
-              decoration: new InputDecoration(
-                border: InputBorder.none,
-                hintText: widget.hintText,
-              ),
-              onChanged: (value) {
-                if (widget.onInputChanged != null){
-                  widget.onInputChanged(value);
-                }
-              },
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -118,7 +118,7 @@ class MainPresenter extends BasePresenter<MainPageContract> implements MainPrese
       }else {
         Tuple2<Exercise, String> tuple = await view.showExerciseDropdownDialog(context);
         if (tuple == null){
-          
+
           return;
         }else if (tuple.item1 == null){
           Fluttertoast.showToast(
