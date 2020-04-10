@@ -11,6 +11,7 @@ class Settings{
       bool tmp = prefs.getBool(name);
       if (tmp == null){
         prefs.setBool(name, true);
+        tmp = true;
       }
 
       activeFormulas[name] = tmp;
