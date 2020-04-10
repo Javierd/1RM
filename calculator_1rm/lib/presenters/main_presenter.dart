@@ -6,7 +6,6 @@ import 'package:calculator_1rm/presenters/base_presenter.dart';
 import 'package:flutter/widgets.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:moor/moor.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tuple/tuple.dart';
 
 class MainPresenter extends BasePresenter<MainPageContract> implements MainPresenterContract{
@@ -46,9 +45,7 @@ class MainPresenter extends BasePresenter<MainPageContract> implements MainPrese
     }
   }
 
-  void detachGrid(){
-    this.grid=null;
-  }
+  void detachGrid() => this.grid=null;
 
   void detachExerciseRecordsView() => this.exerciseRecordsView=null;
 

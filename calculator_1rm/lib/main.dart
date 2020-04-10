@@ -218,7 +218,9 @@ class _MainPageState extends State<MainPage> implements MainPageContract{
                         context,
                         new MaterialPageRoute(builder: (context) => SettingsPage()),
                       ).then((value) {
-                        MainPresenter().onDataEntered(_enteredWeight, _enteredReps);
+                        if (_currentTabIndex==0) {
+                          MainPresenter().onDataEntered(_enteredWeight, _enteredReps);
+                        }
                       });
                     },
                   )
