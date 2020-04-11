@@ -45,7 +45,7 @@ class _SettingsPageState extends State<SettingsPage> implements SettingsPageCont
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('1RM Calculator', style: titleStyleWhite,)
+                    Text('Formulas', style: titleStyleWhite,)
                   ],
                 ),
               ),
@@ -63,17 +63,33 @@ class _SettingsPageState extends State<SettingsPage> implements SettingsPageCont
                         return UnexpectedErrorWidget();
                       } else {
                         List<String> keys = snapshot.data.keys.toList();
-                        return ListView.separated(
-                            itemCount: snapshot.data.length,
-                            separatorBuilder: (BuildContext context, int index) => const Divider(),
-                            itemBuilder: (BuildContext context, int index){
-                              String name = keys[index];
-                              return CheckboxListTile(
-                                value: snapshot.data[name],
-                                title: Text(name),
-                                onChanged: (value) {_presenter.setUserSetting(name, value);},
-                              );
-                            }
+                        return Column(
+                          children: <Widget>[
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16.0, left: 12.0, right: 12.0),
+                              child: Text(
+                                "The calculated RM will be an average of the selected formulas.",
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  color: Colors.black54
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: ListView.separated(
+                                  itemCount: snapshot.data.length,
+                                  separatorBuilder: (BuildContext context, int index) => const Divider(),
+                                  itemBuilder: (BuildContext context, int index){
+                                    String name = keys[index];
+                                    return CheckboxListTile(
+                                      value: snapshot.data[name],
+                                      title: Text(name),
+                                      onChanged: (value) {_presenter.setUserSetting(name, value);},
+                                    );
+                                  }
+                              ),
+                            ),
+                          ],
                         );
                       }
                   }
