@@ -63,7 +63,10 @@ class AppDatabase extends _$AppDatabase {
 
   Future deleteExercise(Exercise exercise) => delete(exercises).delete(exercise);
 
-  Future<List<Record>> getExerciseRecords(Exercise ex) => (select(records)..where((r) => r.exercise.equals(ex.id))).get();
+  Future<List<Record>> getExerciseRecords(Exercise ex) => (select(records)
+    ..where((r) => r.exercise.equals(ex.id))
+      ..orderBy([(t) => OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc)])
+  ).get();
 
   Future insertRecord(RecordsCompanion record) => into(records).insert(record);
 
