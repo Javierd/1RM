@@ -599,8 +599,8 @@ class RecordListItem extends StatelessWidget{
       Text(
         DateFormat.yMMMMd('en_US').format(record.timestamp),
         style: const TextStyle(
-            fontSize: 16,
-            color: Colors.black87
+            fontSize: 15,
+            color: Colors.black45
         ),
       ),
     ],
@@ -624,14 +624,13 @@ class RecordListItem extends StatelessWidget{
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   basicInfo,
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      "Notes: ${record.description}",
-                      style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87
-                      ),
+                  Divider(),
+                  Text(
+                    "\"${record.description}\"",
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.black54
                     ),
                   )
                 ],
